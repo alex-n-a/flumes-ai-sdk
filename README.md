@@ -57,7 +57,7 @@ We are currently working with a small group of alpha testers. If you’re buildi
 
 While we’re in stealth, we’re selectively onboarding teams who need memory infra.
 
-Want to explore fit? Email: `early@flumes.ai`
+Want to explore fit? Email: `alex@flumes.ai`
 
 ---
 
