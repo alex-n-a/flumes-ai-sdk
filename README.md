@@ -1,5 +1,5 @@
 # Flumes AI – Python SDK
-![PyPI](https://img.shields.io/pypi/v/flumes-ai?logo=pypi) ![License](https://img.shields.io/github/license/alex-n-a/flumes-ai-sdk) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/alex-n-a/flumes-ai-sdk/blob/main/agent_memory_walkthrough.ipynb)
+![PyPI](https://img.shields.io/pypi/v/flumes-ai?logo=pypi) ![License](https://img.shields.io/github/license/alex-n-a/flumes-ai-sdk) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/alex-n-a/flumes-ai-sdk/blob/main/learning/agent_memory_tutorial_flumes-ai.ipynb)
 
 Flumes AI is a **unified memory infrastructure** for LLM-powered agents and applications. This SDK lets any Python or LangChain stack plug into the [Flumes Memory API](https://docs.flumes.ai/) in **three lines of code**.
 
