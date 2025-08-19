@@ -19,12 +19,18 @@ class Agent:
         run_id: Optional[str] = None,
         memory_client: Optional[MemoryClient] = None,
         llm_backend: Optional[LLMBackend] = None,
+        openai_api_key: Optional[str] = None,
     ):
         self.agent_id = agent_id
         self.entity_id = entity_id
         self.run_id = run_id
         self._mem = memory_client or MemoryClient(agent_id=agent_id)
-        self._llm = llm_backend or OpenAIBackend()
+        if llm_backend is not None:
+            self._llm = llm_backend
+        else:
+            if not openai_api_key:
+                raise RuntimeError("OpenAI API key required: pass openai_api_key or a custom llm_backend.")
+            self._llm = OpenAIBackend(api_key=openai_api_key)
 
     # --------------------------------------------------------
     # Memory helpers
@@ -49,7 +55,7 @@ class Agent:
             input=prompt,
             entity_id=self.entity_id or "anonymous",
             namespace=namespace,
-            retrieval=retrieval or {"preset": "factual"},
+            retrieval=retrieval or {"preset": "factual", "predicate_boosts": {"likes": 2.0}},
             include_snippet=True,
             return_structured_facts=True,
         )
@@ -60,7 +66,10 @@ class Agent:
         sources = context.get("sources", [])
 
         # 2) Build messages for the LLM
-        sys = "You are a helpful assistant. Use the provided memory context when relevant."
+        sys = (
+            "You are a helpful assistant. Ground every answer ONLY in the facts below. "
+            "If the facts are insufficient, say 'I'm not sure based on memory.'"
+        )
         def fmt_fact(f):
             if isinstance(f, dict):
                 subj = f.get("subject") or ""

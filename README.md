@@ -10,23 +10,25 @@ Flumes AI is a **unified memory infrastructure** for LLM-powered agents and appl
 ## 🚀 Installation
 
 ```bash
-pip install flumes-ai  # includes the OpenAI client by default
+pip install flumes-ai           # core SDK
+# Optional Agent helper (requires OpenAI client)
+pip install "flumes-ai[agent]"  # or: pip install openai
 ```
 
-Python ≥3.8.  No system packages or C-extensions required.
+Python ≥3.9. No system packages or C-extensions required.
 
 ---
 
 ## 🔑 Configuration
 
-Environment variables (preferred):
+Environment variables (preferred for examples below):
 
 | Service | Variable | Example |
 |---------|----------|---------|
 | **Flumes** | `FLUMES_API_KEY` | `export FLUMES_API_KEY=sk_live_…` |
 | **OpenAI** | `OPENAI_API_KEY` | `export OPENAI_API_KEY=sk-…` |
 
-You can also pass `api_key="…"` directly to `MemoryClient`.
+You can also pass `api_key="…"` directly to `MemoryClient`. The Agent helper requires an explicit OpenAI key parameter.
 
 ---
 
@@ -45,11 +47,7 @@ hits = u.search("trip recommendations", top_k=24)
 print(len(hits.get("matches", [])))
 ```
 
-Behind the scenes Flumes:
-1. Adds the fact to long-term memory (summarised + deduplicated).
-2. Retrieves relevant memories with semantic search.
-3. Injects them into the LLM prompt (OpenAI by default).
-4. Stores the assistant response for future context.
+Behind the scenes Flumes stores facts/events and makes them retrievable with hybrid search. Use the optional Agent helper to compose grounded prompts with your LLM.
 
 ---
 
@@ -71,9 +69,29 @@ All endpoints map 1-to-1 with the [REST reference](https://docs.flumes.ai/api-re
 
 * **Semantic search** & vector similarity out-of-the-box.
 * **Automatic summarisation & deduplication** (`infer=True` by default).
-* **Pluggable LLM backend** – OpenAI today, Claude/Mistral coming.
+* **Pluggable LLM backend** – OpenAI via explicit key today; more coming.
 * **Structured logging** – JSON events (`memory.add.request`, `llm.called`) for easy observability.
 * **Timeout & retry helpers** – avoid first-call latency issues.
+
+---
+
+## 🧠 Optional: Agent helper (explicit OpenAI key)
+
+```python
+from flumes import MemoryClient, Agent
+
+client = MemoryClient(api_key="FLUMES_KEY", agent_id="travel-bot", namespace="prod")
+agent = Agent(
+    agent_id="travel-bot",
+    entity_id="user_001",
+    memory_client=client,
+    openai_api_key="OPENAI_KEY",  # required explicitly
+)
+
+print(agent.chat("Plan my trip."))
+```
+
+The helper assembles context via Flumes, grounds the prompt, and calls your LLM. If you don't want OpenAI, provide your own `llm_backend`.
 
 ---
 

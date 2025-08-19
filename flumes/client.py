@@ -36,11 +36,19 @@ class MemoryClient:
         local: bool = False,
     ) -> None:
         if local:
-            raise FlumesError("local=True is not supported in the public SDK distribution.")
+            raise FlumesError(
+                "local=True is not supported in the public SDK distribution.",
+                code="BAD_REQUEST",
+                status=400,
+            )
         else:
             key = api_key or os.getenv("FLUMES_API_KEY")
             if not key:
-                raise FlumesError("API key missing; set FLUMES_API_KEY or pass api_key=")
+                raise FlumesError(
+                    "API key missing; set FLUMES_API_KEY or pass api_key=",
+                    code="AUTH_INVALID_API_KEY",
+                    status=401,
+                )
             self._transport = RemoteTransport(base_url, key, timeout=timeout, agent_id=agent_id)
         self._agent_id = agent_id
         self._namespace = namespace
@@ -162,7 +170,11 @@ class MemoryClient:
     ) -> dict:
         ns = namespace or self._namespace
         if preset and weights:
-            raise FlumesError("VALIDATION_FAILED: provide either preset or weights, not both.")
+            raise FlumesError(
+                "VALIDATION_FAILED: provide either preset or weights, not both.",
+                code="VALIDATION_FAILED",
+                status=400,
+            )
         body: Dict[str, Any] = {
             "query": query,
             "entity_id": entity_id,
