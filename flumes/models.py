@@ -14,7 +14,7 @@ class Message(BaseModel):
 
 class AddMemoryRequest(BaseModel):
     messages: List[Message] = Field(..., min_length=1, max_length=50)
-    user_id: Optional[str] = None
+    entity_id: Optional[str] = None
     agent_id: Optional[str] = None
     run_id: Optional[str] = None
     metadata: Optional[dict[str, Any]] = None

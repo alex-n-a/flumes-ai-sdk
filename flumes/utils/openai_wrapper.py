@@ -21,7 +21,7 @@ class LLMBackend:
 class OpenAIBackend(LLMBackend):
     """Thin wrapper around ``openai.ChatCompletion`` for MVP."""
 
-    def __init__(self, model: str = "gpt-3.5-turbo", temperature: float = 0.2):
+    def __init__(self, model: str = "gpt-4o-mini", temperature: float = 0.2):
         if openai is None:
             raise RuntimeError("openai package not installed; run `pip install openai`. ")
         self.model = model

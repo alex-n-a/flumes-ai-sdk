@@ -30,15 +30,19 @@ You can also pass `api_key="…"` directly to `MemoryClient`.
 
 ---
 
-## ⚡ Quick-start
+## ⚡ Quick-start (entity-first; no summarize route)
 
 ```python
-from flumes.agent import Agent
+from flumes import MemoryClient
 
-agent = Agent(agent_id="sales_assistant")
+client = MemoryClient(api_key="YOUR_KEY", agent_id="travel-bot")
+u = client.for_entity("user_001", namespace="prod")
 
-agent.remember("We're targeting $1 M ARR by Q4.")
-print(agent.chat("What's our current goal?"))
+res = u.add("Planning a trip to France. Like wine, cheese and calm places.")
+print(res.get("context", {}).get("summary"))
+
+hits = u.search("trip recommendations", top_k=24)
+print(len(hits.get("matches", [])))
 ```
 
 Behind the scenes Flumes:
@@ -49,20 +53,14 @@ Behind the scenes Flumes:
 
 ---
 
-## 🛠️ Low-level CRUD
+## 🛠️ Advanced (thin pass-through)
 
 ```python
 from flumes import MemoryClient
 
-mc = MemoryClient(timeout=120)                # 2-minute timeout for cold starts
-
-mc.add(
-    messages=[{"role": "user", "content": "Buy milk"}],
-    agent_id="shopping_bot"
-)
-
-hits = mc.search(agent_id="shopping_bot", query="milk")
-print(hits)
+mc = MemoryClient(api_key="YOUR_KEY")
+mc.search("wine", entity_id="user_42")
+mc.get_all(entity_id="user_42", limit=50)
 ```
 
 All endpoints map 1-to-1 with the [REST reference](https://docs.flumes.ai/api-reference/).

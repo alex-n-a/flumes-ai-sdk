@@ -1,7 +1,5 @@
 from __future__ import annotations
-
-from typing import Optional, Dict, Any, Literal
-
+from typing import Optional, TypedDict, Literal, Dict, Any
 
 FlumesErrorCode = Literal[
     "AUTH_INVALID_API_KEY",
@@ -19,8 +17,6 @@ FlumesErrorCode = Literal[
 
 
 class FlumesError(Exception):
-    """Base exception carrying stable error code and metadata."""
-
     def __init__(
         self,
         message: str,
@@ -43,20 +39,3 @@ class FlumesError(Exception):
     def __str__(self) -> str:  # pragma: no cover
         rid = f" request_id={self.request_id}" if self.request_id else ""
         return f"[{self.code}] {super().__str__()} (status={self.status}{rid})"
-
-
-# Backwards-compatible subclasses for older catch sites
-class AuthenticationError(FlumesError):
-    pass
-
-
-class NotFoundError(FlumesError):
-    pass
-
-
-class RateLimitError(FlumesError):
-    pass
-
-
-class TransportError(FlumesError):
-    pass

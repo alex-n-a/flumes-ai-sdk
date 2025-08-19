@@ -9,92 +9,81 @@ from flumes.logger import emit
 
 
 class Agent:
-    """Opinionated high-level interface for chat with memory support."""
+    """Chat agent powered by Flumes context assemble + OpenAI (optional)."""
 
     def __init__(
         self,
         *,
         agent_id: str,
-        user_id: Optional[str] = None,
+        entity_id: Optional[str] = None,
         run_id: Optional[str] = None,
         memory_client: Optional[MemoryClient] = None,
         llm_backend: Optional[LLMBackend] = None,
     ):
         self.agent_id = agent_id
-        self.user_id = user_id
+        self.entity_id = entity_id
         self.run_id = run_id
-        self._mem = memory_client or MemoryClient()
+        self._mem = memory_client or MemoryClient(agent_id=agent_id)
         self._llm = llm_backend or OpenAIBackend()
 
     # --------------------------------------------------------
     # Memory helpers
     # --------------------------------------------------------
 
-    def remember(self, memory: str, *, metadata: Optional[Dict] = None) -> dict:
-        """Persist *memory* as an assistant message."""
+    def remember(self, memory: str, *, namespace: Optional[str] = None, metadata: Optional[Dict] = None) -> dict:
+        """Store an assistant memory via context assemble ingest (event)."""
         return self._mem.add(
-            messages=[Message(role="assistant", content=memory)],
-            agent_id=self.agent_id,
-            user_id=self.user_id,
-            run_id=self.run_id,
-            metadata=metadata,
-            infer=True,
+            input=memory,
+            entity_id=self.entity_id or "anonymous",
+            namespace=namespace,
         )
 
     # --------------------------------------------------------
     # Chat API
     # --------------------------------------------------------
 
-    def chat(self, prompt: str, *, limit: int = 20) -> str:  # noqa: D401
-        """Chat with the agent – simple MVP workflow."""
-        # 1. Store the user prompt as a memory
-        self._mem.add(
-            messages=[Message(role="user", content=prompt)],
-            agent_id=self.agent_id,
-            user_id=self.user_id,
-            run_id=self.run_id,
-            infer=True,
+    def chat(self, prompt: str, *, namespace: Optional[str] = None, retrieval: Optional[Dict] = None) -> str:  # noqa: D401
+        """One-shot chat: assemble context (ingests user turn), call LLM, store reply."""
+        # 1) Assemble context and ingest the user turn
+        ctx = self._mem.add(
+            input=prompt,
+            entity_id=self.entity_id or "anonymous",
+            namespace=namespace,
+            retrieval=retrieval or {"preset": "factual"},
+            include_snippet=True,
+            return_structured_facts=True,
         )
+        context = ctx.get("context", {})
+        summary = context.get("summary") or ""
+        facts = context.get("facts_struct", []) or context.get("facts", [])
+        recent = context.get("recent_events", [])
+        sources = context.get("sources", [])
 
-        # 2. Fetch relevant memories
-        mems = self._mem.search(
-            agent_id=self.agent_id,
-            user_id=self.user_id,
-            query=prompt,
-            limit=limit,
-        )
-
-        # 3. Build LLM context
-        mem_items = mems.get("results", mems.get("memories", []))
-        context_lines = [m.get("memory", "") for m in mem_items]
-        system_msg = (
-            "You are an AI assistant equipped with long-term memory. "
-            "Relevant stored memories will be provided as context."
-        )
-        memory_block = "\n".join(f"- {m}" for m in context_lines)
-
+        # 2) Build messages for the LLM
+        sys = "You are a helpful assistant. Use the provided memory context when relevant."
+        def fmt_fact(f):
+            if isinstance(f, dict):
+                subj = f.get("subject") or ""
+                pred = f.get("predicate") or ""
+                obj = f.get("object_text") or f.get("object_num") or ""
+                return f"- {subj} {pred} {obj}".strip()
+            return f"- {f}"
+        mem_lines = [fmt_fact(f) for f in facts] + [f"- {e}" for e in recent]
+        mem_block = "\n".join(mem_lines)
         messages = [
-            {"role": "system", "content": system_msg},
-            {
-                "role": "system",
-                "content": (
-                    "Relevant memories:\n" + memory_block +
-                    "\nWhen answering, rely on these memories if they are pertinent."
-                ),
-            },
+            {"role": "system", "content": sys},
+            {"role": "system", "content": f"Summary:\n{summary}\n\nContext:\n{mem_block}"},
             {"role": "user", "content": prompt},
         ]
 
-        # 4. Call LLM
+        # 3) Call LLM
         emit("llm.called", backend=self._llm.__class__.__name__, prompt=prompt)
         reply = self._llm.complete(messages)
 
-        # 5. Store assistant reply
+        # 4) Store assistant reply (as event)
         self._mem.add(
-            messages=[Message(role="assistant", content=reply)],
-            agent_id=self.agent_id,
-            user_id=self.user_id,
-            run_id=self.run_id,
-            infer=True,
+            input=reply,
+            entity_id=self.entity_id or "anonymous",
+            namespace=namespace,
         )
         return reply

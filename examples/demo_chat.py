@@ -12,28 +12,34 @@ def main():
         sys.exit(1)
 
     # --------------- Low-level CRUD -----------------
-    agent_id = "demo_sales_assistant"
-    mc = MemoryClient(api_key=api_key)
+    agent_id = "demo_travel_bot"
+    entity_id = "user_001"
+    mc = MemoryClient(api_key=api_key, agent_id=agent_id)
+
+    print("Health:", mc.health())
+    print("Meta:", mc.meta())
 
     print("Adding a memory …")
     mc.add(
-        messages=[{"role": "user", "content": "We will launch on July 31."}],
-        agent_id=agent_id,
+        input="Planning a trip to France. Like wine, cheese and calm places.",
+        entity_id=entity_id,
+        namespace="prod",
+        budget="standard",
     )
 
     print("Searching memories …")
-    hits = mc.search(agent_id=agent_id, query="launch")
-    print("Search results:", hits)
+    hits = mc.search("trip recommendations", entity_id=entity_id, namespace="prod", top_k=24)
+    print("Search matches:", len(hits.get("matches", [])))
 
     # --------------- High-level Agent chat ---------
     # Requires OPENAI_API_KEY (or uses env var if already set)
-    agent = Agent(agent_id=agent_id)
+    agent = Agent(agent_id=agent_id, entity_id=entity_id)
 
     print("Storing agent memory …")
-    agent.remember("Our designer's name is Alice.")
+    agent.remember("I prefer museums over nightlife.")
 
     print("Asking agent …")
-    reply = agent.chat("Who is our designer?")
+    reply = agent.chat("Can you suggest a 3-day itinerary in France?")
     print("Agent replied:", reply)
 
 
